@@ -3,13 +3,16 @@ from interpreter import Interpreter
 what_to_execute = {
     'instructions': [
         ('LOAD_VALUE', 0),
-        ('LOAD_VALUE', 0),
-        ('ADD_TWO_NUMBERS', None),
+        ('STORE_NAME', 0),
         ('LOAD_VALUE', 1),
+        ('STORE_NAME', 1),
+        ('LOAD_NAME', 0),
+        ('LOAD_NAME', 1),
         ('ADD_TWO_NUMBERS', None),
         ('PRINT_ANSWER', None),
     ],
-    'numbers': [42, 23]
+    'numbers': [42, 69],
+    'names': ['meaning', 'crisis'],
 }
 
 interpreter = Interpreter()
