@@ -11,7 +11,7 @@ what_to_execute = {
         ('ADD_TWO_NUMBERS', None),
         ('PRINT_ANSWER', None),
     ],
-    'numbers': [42, 69],
+    'numbers': [42, 9],
     'names': ['meaning', 'crisis'],
 }
 

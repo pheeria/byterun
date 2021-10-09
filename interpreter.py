@@ -1,3 +1,5 @@
+from typing import Union, cast, Optional
+
 class Interpreter:
     def __init__(self) -> None:
         self.stack = []
@@ -24,18 +26,28 @@ class Interpreter:
         value = self.stack.pop()
         print(value)
 
+    def parse_argument(self, code: dict, step: tuple[str, Optional[int]]) -> tuple[str, Union[str, int]]:
+        numbers = ['LOAD_VALUE']
+        names = ['LOAD_NAME', 'STORE_NAME']
+        instruction = step[0]
+        argument = 0
+        if instruction in numbers:
+            argument = code['numbers'][step[1]]
+        elif instruction in names:
+            argument = code['names'][step[1]]
+
+        return instruction, argument
+
+
     def run(self, code: dict) -> None:
         for each in code['instructions']:
-            instruction, argument = each
+            instruction, argument = self.parse_argument(code, each)
             if instruction == 'LOAD_VALUE':
-                value = code['numbers'][argument]
-                self.LOAD_VALUE(value)
+                self.LOAD_VALUE(cast(int, argument))
             elif instruction == 'LOAD_NAME':
-                value = code['names'][argument]
-                self.LOAD_NAME(value)
+                self.LOAD_NAME(cast(str, argument))
             elif instruction == 'STORE_NAME':
-                value = code['names'][argument]
-                self.STORE_NAME(value)
+                self.STORE_NAME(cast(str, argument))
             elif instruction == 'ADD_TWO_NUMBERS':
                 self.ADD_TWO_NUMBERS()
             else:
