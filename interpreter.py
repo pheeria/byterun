@@ -26,11 +26,11 @@ class Interpreter:
         value = self.stack.pop()
         print(value)
 
-    def parse_argument(self, code: dict, step: tuple[str, Optional[int]]) -> tuple[str, Union[str, int]]:
+    def parse_argument(self, code: dict, step: tuple[str, Optional[int]]) -> tuple[str, Union[str, int, None]]:
         numbers = ['LOAD_VALUE']
         names = ['LOAD_NAME', 'STORE_NAME']
         instruction = step[0]
-        argument = 0
+        argument = None
         if instruction in numbers:
             argument = code['numbers'][step[1]]
         elif instruction in names:
@@ -42,15 +42,10 @@ class Interpreter:
     def run(self, code: dict) -> None:
         for each in code['instructions']:
             instruction, argument = self.parse_argument(code, each)
-            if instruction == 'LOAD_VALUE':
-                self.LOAD_VALUE(cast(int, argument))
-            elif instruction == 'LOAD_NAME':
-                self.LOAD_NAME(cast(str, argument))
-            elif instruction == 'STORE_NAME':
-                self.STORE_NAME(cast(str, argument))
-            elif instruction == 'ADD_TWO_NUMBERS':
-                self.ADD_TWO_NUMBERS()
+            bytecode = getattr(self, instruction)
+            if argument is None:
+                bytecode()
             else:
-                self.PRINT_ANSWER()
+                bytecode(argument)
 
 
