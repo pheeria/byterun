@@ -27,6 +27,7 @@ class Interpreter:
         print(value)
 
     def parse_argument(self, code: dict, step: tuple[str, Optional[int]]) -> tuple[str, Union[str, int, None]]:
+        """ Understand what the argument to each instruction means."""
         numbers = ['LOAD_VALUE']
         names = ['LOAD_NAME', 'STORE_NAME']
         instruction = step[0]
