@@ -1,3 +1,4 @@
+import dis
 from frame import Frame
 from typing import Optional
 
@@ -48,3 +49,49 @@ class VirtualMachine:
         frame = self.make_frame(code, global_names, local_names)
         self.run_frame(frame)
 
+    def top(self):
+        return self.frame.stack[-1]
+
+    def pop(self):
+        return self.frame.stack.pop()
+
+    def push(self, *values):
+        self.frame.stack.extend(values)
+
+    def popn(self, n):
+        """Pop a number of values from the value stack.
+        A list of `n` values is returned, the deepest value first.
+        """
+        result = []
+        if n:
+            result = self.frame.stack[-n:]
+            self.frame.stack[-n:] = []
+        return result
+
+    def parse_byte_and_args(self):
+        frame: Frame = self.frame
+        op_offset = frame.last_instruction
+        bytecode = frame.code_object.co_code[op_offset]
+        frame.last_instruction += 1
+        bytename = dis.opname[bytecode]
+        argument = []
+        if bytecode >= dis.HAVE_ARGUMENT:
+            arg = frame.code_object.co_code[frame.last_instruction:frame.last_instruction + 2]
+            frame.last_instruction += 2
+            arg_value = arg[0] + (arg[1] * 256)
+
+            if bytecode in dis.hasconst:
+                arg = frame.code_object.co_consts[arg_value]
+            elif bytecode in dis.hasname:
+                arg = frame.code_object.co_names[arg_value]
+            elif bytecode in dis.haslocal:
+                arg = frame.code_object.co_varnames[arg_value]
+            elif bytecode in dis.hasjrel:
+                arg = frame.last_instruction + arg_value
+            else:
+                arg = arg_value
+            
+            argument.append(arg)
+
+        return bytename, argument
+            
