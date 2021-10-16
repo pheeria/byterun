@@ -1,3 +1,4 @@
+import sys
 import dis
 from frame import Frame
 from typing import Optional
@@ -42,7 +43,27 @@ class VirtualMachine:
             self.frame = None
 
     def run_frame(self, frame: Frame):
-        pass
+        """Run a frame until it returns (somehow).
+        Exceptions are raised, the return value is returned."""
+        self.push_frame(frame)
+        while True:
+            bytename, argument = self.parse_byte_and_args()
+            why = self.dispatch(bytename, argument)
+
+            while why and frame.block_stack:
+                why = self.manage_block_stack(why)
+
+            if why:
+                break
+
+        self.pop_frame()
+
+        if why == 'Exception':
+            exc, value, tb = self.last_exception
+            e = exc(value)
+            e.__traceback__ = tb
+
+        return self.return_value
 
     def run_code(self, code: dict, global_names = None, local_names = None) -> None:
         """ An entry point to execute code using the virtual machine."""
@@ -95,3 +116,27 @@ class VirtualMachine:
 
         return bytename, argument
             
+    def dispatch(self, bytename, argument):
+        """ Dispatch by bytename to the corresponding methods.
+        Exceptions are caught and set on the virtual machine."""
+
+        # When later unwinding the block stack,
+        # we need to keep track of why we are doing it
+        why = None
+        try:
+            bytecode_fn = getattr(self, f'byte_{bytename}', None)
+            if bytecode_fn is None:
+                if bytename.startsWith('UNARY_'):
+                    self.unary_operator(bytename[6:])
+                elif bytename.startsWith('BINARY_'):
+                    self.binary_operator(bytename[7:])
+                else:
+                    raise VirtualMachineError(f'Unsupported bytecode type: {bytename}')
+            else:
+                why = bytecode_fn(*argument)
+        except:
+            # deal with exceptions encountered while executing the operation
+            self.last_exception = sys.exc_info()[:2] + (None,)
+            why = 'Exception'
+        return why
+
