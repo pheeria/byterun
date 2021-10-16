@@ -1,8 +1,10 @@
 import sys
+import collections
 import dis
 from frame import Frame
 from typing import Optional
 
+Block = collections.namedtuple('Block', 'type, handler, stack_height')
 
 class VirtualMachineError(Exception):
     pass
@@ -58,10 +60,10 @@ class VirtualMachine:
 
         self.pop_frame()
 
-        if why == 'Exception':
-            exc, value, tb = self.last_exception
-            e = exc(value)
-            e.__traceback__ = tb
+        if why == 'exception':
+            exception_type, value, traceback = self.last_exception
+            e = exception_type(value)
+            e.__traceback__ = traceback
 
         return self.return_value
 
@@ -137,6 +139,62 @@ class VirtualMachine:
         except:
             # deal with exceptions encountered while executing the operation
             self.last_exception = sys.exc_info()[:2] + (None,)
-            why = 'Exception'
+            why = 'exception'
         return why
 
+    def push_block(self, block_type, handler = None):
+        stack_height = len(self.frame.stack)
+        self.frame.block_stack.append(Block(block_type, handler, stack_height))
+
+    def pop_block(self):
+        return self.frame.block_stack.pop()
+
+    def unwind_block(self, block):
+        """Unwind the values on the data stack corresponding to a given block"""
+        if block.type == 'except-handler':
+            # The exception itself is on the stack as type, value and traceback
+            offset = 3
+        else:
+            offset = 0
+
+        while len(self.frame.stack) > block.stack_height + offset:
+            self.pop()
+
+        if block.type = 'except-handler':
+            traceback, value, exception_type = self.popn(3)
+            self.last_exception = exception_type, value, traceback
+
+    def manage_block_stack(self, why):
+        frame = self.frame
+        block = frame.block_stack[-1]
+        if block.type == 'loop' and why == 'continue':
+            self.jump(self.return_value)
+            why = None
+            return why
+
+        self.pop_block()
+        self.unwind_block(block)
+
+        if block.type == 'loop' and why == 'break':
+            why = None
+            self.jump(block.handler)
+            return why
+
+        if block.type in ['setup-except', 'finally'] and why == 'exception':
+            self.push_block('except-handler')
+            exception_type, value, traceback = self.last_exception
+            self.push(traceback, value, exception_type)
+            self.push(traceback, value, exception_type) # yes, twice
+            why = None
+            self.jump(block.handler)
+            return why
+        elif block.type == 'finally':
+            if why in ['return', 'continue']:
+                self.push(self.return_value)
+
+            self.push(why)
+            why = None
+            self.jump(block.handler)
+            return why
+        return why
+        
